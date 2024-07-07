@@ -113,8 +113,8 @@ bool init_gnss(bool active)
 		my_gnss.enableGNSS(true, SFE_UBLOX_GNSS_ID_IMES);
 		my_gnss.enableGNSS(true, SFE_UBLOX_GNSS_ID_QZSS);
 
-		GNSS.setNavigationFrequency(5); // Produce two solutions per second
-		GNSS.setAutoPVT(true, false);	// Tell the GNSS to "send" each solution and the lib not to update stale data implicitly
+		// my_gnss.setNavigationFrequency(5); // Produce two solutions per second
+		// my_gnss.setAutoPVT(true, false);   // Tell the GNSS to "send" each solution and the lib not to update stale data implicitly
 	}
 
 	return true;
