@@ -1,5 +1,5 @@
 # Simple RUI3 based Signal Meter with settings option
-| <img src="./assets/RAK-Whirls.png" alt="RAKWireless"> |     <img src="./assets/device.png" alt="Signal Meter" size=50% > | <img src="./assets/rakstar.jpg" alt="RAKstar" > |    
+| <img src="./assets/RAK-Whirls.png" alt="RAKWireless"> |     <img src="./assets/device.jpg" alt="Signal Meter" size=50% > | <img src="./assets/rakstar.jpg" alt="RAKstar" > |    
 | :-: | :-: | :-: |
 
 ----
@@ -368,7 +368,7 @@ If the device is out of the range of gateways (after it had joined before), it w
 
 ----
 
-## LoRaWAN Field Tester (requires backend server)
+## LoRaWAN Field Tester
 
 After the device has joined the network, it will send confirmed packets with location information to the LoRaWAN server. The LoRaWAN server will forward this information together with gateway information to the backend server. The backend server will create and send a downlink packet to the tester. The display will show
 - Number of gateways that received the packet
@@ -389,6 +389,10 @@ If a location fix can be acquired, it will display the location and send an upli
 If no location fix can be acquired, an error will be displayed and no packet will be sent:
 
 <center><img src="./assets/fieldtester-no-location.png" alt="Fieldtester location failure"></center>
+
+#### ⚠️ IMPORTANT ⚠️        
+In Field Tester Mode a backend server has to be setup as integration in the LoRaWAN server. Without this backend server, the Field Tester Mode does not work.    
+More information about available backend solutions can be found in the [RAK10701 documentation](https://docs.rakwireless.com/Product-Categories/WisNode/RAK10701-P/Quickstart/#lorawan-network-servers-guide-for-rak10701-p-field-tester-pro)
 
 [Back to top](#content)
 
