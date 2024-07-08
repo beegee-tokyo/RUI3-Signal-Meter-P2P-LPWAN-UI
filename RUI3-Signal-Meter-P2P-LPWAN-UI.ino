@@ -539,22 +539,26 @@ void handle_display(void *reason)
 			oled_clear();
 			oled_write_header((char *)"RAK FieldTester");
 
-			sprintf(line_str, "Gateways: %d\n", num_gateways);
+			sprintf(line_str, "DL RX SNR: %d RSSI: %d", last_snr, last_rssi);
 			oled_write_line(0, 0, line_str);
-			sprintf(line_str, "RX SNR: %d RSSI: %d", last_snr, last_rssi);
+			sprintf(line_str, "GW(s): %d\n", num_gateways);
 			oled_write_line(1, 0, line_str);
-			oled_write_line(2, 64, "Min");
-			oled_write_line(2, 96, "Max");
-			oled_write_line(3, 0, "RSSI");
+			oled_write_line(1, 50, "RSSI");
+			oled_write_line(1, 80, "Distance");
+			oled_write_line(2, 0, "Min");
+			oled_write_line(3, 0, "Max");
+
 			sprintf(line_str, "%d", min_rssi);
-			oled_write_line(3, 64, line_str);
+			oled_write_line(2, 50, line_str);
 			sprintf(line_str, "%d", max_rssi);
-			oled_write_line(3, 96, line_str);
-			oled_write_line(4, 0, "Distance");
+			oled_write_line(3, 50, line_str);
+
 			sprintf(line_str, "%d", min_distance);
-			oled_write_line(4, 64, line_str);
+			oled_write_line(2, 80, line_str);
 			sprintf(line_str, "%d", max_distance);
-			oled_write_line(4, 96, line_str);
+			oled_write_line(3, 80, line_str);
+			sprintf(line_str,"L %.6f:%.6f",g_last_lat, g_last_long);
+			oled_write_line(4, 0, line_str);
 			oled_display();
 		}
 	}

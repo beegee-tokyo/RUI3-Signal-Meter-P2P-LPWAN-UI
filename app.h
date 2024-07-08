@@ -188,5 +188,7 @@ extern uint16_t check_gnss_counter;
 extern uint16_t check_gnss_max_try;
 extern uint8_t max_sat;
 extern uint8_t max_sat_unchanged;
+extern float g_last_lat;
+extern float g_last_long;
 
 #endif // _APP_H_

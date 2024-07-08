@@ -371,10 +371,11 @@ If the device is out of the range of gateways (after it had joined before), it w
 ## LoRaWAN Field Tester
 
 After the device has joined the network, it will send confirmed packets with location information to the LoRaWAN server. The LoRaWAN server will forward this information together with gateway information to the backend server. The backend server will create and send a downlink packet to the tester. The display will show
-- Number of gateways that received the packet
 - RSSI and SNR level of the received downlink packet
+- Number of gateways that received the packet
 - Min and Max RSSI levels seen by the gateways
 - Min and Max calculated distance between the tester and the gateways
+- Location of the device
 
 <center><img src="./assets/fieldtester-ok.png" alt="Fieldtester display"></center>
 

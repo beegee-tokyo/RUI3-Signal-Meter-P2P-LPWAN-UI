@@ -38,6 +38,11 @@ float accuracy = 0;
 /** Number of satellites */
 uint8_t satellites = 0;
 
+/** Last latitude for global use */
+float g_last_lat = 0.0;
+/** Last longitude for global use */
+float g_last_long = 0.0;
+
 /** Counter for GNSS readings */
 uint16_t check_gnss_counter = 0;
 /** Max number of GNSS readings before giving up */
@@ -197,6 +202,9 @@ bool poll_gnss(void)
 
 		g_solution_data.addGNSS_T(latitude, longitude, altitude/1000, accuracy, satellites);
 
+		g_last_lat = latitude / 10000000.0;
+		g_last_long = longitude / 10000000.0;
+
 		return true;
 	}
 	else
@@ -214,6 +222,9 @@ bool poll_gnss(void)
 		g_solution_data.addGNSS_T(latitude, longitude, altitude, accuracy, satellites);
 
 		last_read_ok = true;
+
+		g_last_lat = latitude / 10000000.0;
+		g_last_long = longitude / 10000000.0;
 
 		return true;
 #endif
@@ -282,6 +293,7 @@ void gnss_handler(void *)
 	if (has_oled && !finished_poll)
 	{
 		oled_clear();
+		line_str[0] = 0x00;
 		oled_add_line((char *)"Acquistion ongoing");
 		if (satellites == 0)
 		{
