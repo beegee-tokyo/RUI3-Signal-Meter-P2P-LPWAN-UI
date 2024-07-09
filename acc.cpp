@@ -10,6 +10,7 @@
  */
 #include "app.h"
 
+// Forward declaration
 void acc_int_callback(void);
 
 /** The LIS3DH sensor */
@@ -17,8 +18,8 @@ LIS3DH acc_sensor(I2C_MODE, 0x18);
 
 /**
  * @brief Initialize LIS3DH 3-axis
- * acceleration sensor
  *
+ * @param active true = initialize interrupts, false = put in low power mode
  * @return true If sensor was found and is initialized
  * @return false If sensor initialization failed
  */
@@ -129,6 +130,10 @@ bool init_acc(bool active)
 	return true;
 }
 
+/**
+ * @brief Read sensor values (unused)
+ * 
+ */
 void read_acc(void)
 {
 	int16_t acc_x = (int16_t)(acc_sensor.readFloatAccelX() * 1000.0);
@@ -148,14 +153,12 @@ void read_acc(void)
 }
 
 /**
- * @brief ACC interrupt handler
- * @note gives semaphore to wake up main loop
+ * @brief ACC interrupt handler (unused)
  *
  */
 void acc_int_callback(void)
 {
-	// g_task_event_type |= ACC_TRIGGER;
-	// xSemaphoreGiveFromISR(g_task_sem, pdFALSE);
+
 }
 
 /**

@@ -54,7 +54,9 @@ uint16_t check_gnss_counter = 0;
 /** Max number of GNSS readings before giving up */
 uint16_t check_gnss_max_try = 0;
 
+/** Max number of satellites seen */
 uint8_t max_sat = 0;
+/** Number of checks with unchanged number of satellites seen */
 uint8_t max_sat_unchanged = 0;
 
 /**

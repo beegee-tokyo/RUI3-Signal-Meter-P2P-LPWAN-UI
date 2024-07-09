@@ -106,6 +106,12 @@ int interval_send_handler(SERIAL_PORT port, char *cmd, stParam *param)
 	return AT_OK;
 }
 
+/**
+ * @brief Add test mode AT command
+ *
+ * @return true if success
+ * @return false if failed
+ */
 bool init_test_mode_at(void)
 {
 	return api.system.atMode.add((char *)"MODE",
@@ -114,6 +120,16 @@ bool init_test_mode_at(void)
 								 RAK_ATCMD_PERM_WRITE | RAK_ATCMD_PERM_READ);
 }
 
+/**
+ * @brief Handler for test mode AT command
+ *
+ * @param port Serial port used
+ * @param cmd char array with the received AT command
+ * @param param char array with the received AT command parameters
+ * @return int result of command parsing
+ * 			AT_OK AT command & parameters valid
+ * 			AT_PARAM_ERROR command or parameters invalid
+ */
 int test_mode_handler(SERIAL_PORT port, char *cmd, stParam *param)
 {
 	if (param->argc == 1 && !strcmp(param->argv[0], "?"))
@@ -272,7 +288,7 @@ bool init_status_at(void)
 }
 
 /** Regions as text array */
-char *regions_list[] = {"EU433", "CN470", "RU864", "IN865", "EU868", "US915", "AU915", "KR920", "AS923", "AS923-2", "AS923-3", "AS923-4", "LA915"};
+char *g_regions_list[] = {"EU433", "CN470", "RU864", "IN865", "EU868", "US915", "AU915", "KR920", "AS923", "AS923-2", "AS923-3", "AS923-4", "LA915"};
 /** Network modes as text array*/
 char *nwm_list[] = {"P2P", "LoRaWAN", "FSK"};
 /** Available test modes as text array */
@@ -311,7 +327,7 @@ int status_handler(SERIAL_PORT port, char *cmd, stParam *param)
 			AT_PRINTF("Network %s", api.lorawan.njs.get() ? "joined" : "not joined");
 			region_set = api.lorawan.band.get();
 			AT_PRINTF("Region: %d", region_set);
-			AT_PRINTF("Region: %s", regions_list[region_set]);
+			AT_PRINTF("Region: %s", g_regions_list[region_set]);
 			if (api.lorawan.njm.get())
 			{
 				AT_PRINTF("OTAA mode");

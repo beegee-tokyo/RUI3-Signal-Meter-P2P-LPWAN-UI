@@ -37,6 +37,7 @@ SSD1306Wire display(0x3c, PIN_WIRE_SDA, PIN_WIRE_SCL, GEOMETRY_128_64, &Wire);
 /** Flag if display is on or off */
 volatile bool display_power = true;
 
+// Forward declarations for UI
 extern uint8_t ui_last_dr;
 extern uint8_t ui_max_dr;
 extern uint8_t ui_min_dr;
@@ -219,6 +220,10 @@ void oled_display(void)
 	display.display();
 }
 
+/**
+ * @brief Timer callback for display saver
+ * 
+ */
 void oled_saver(void *)
 {
 	oled_power(false);
@@ -248,7 +253,16 @@ void oled_power(bool on_off)
 	}
 }
 
-// display_show_menu(top_menu, top_menu_len, sel_menu, 0, g_last_settings.display_saver, g_last_settings.location_on);
+/**
+ * @brief Settings display handler
+ * 
+ * @param menu which menu content to show
+ * @param menu_len number of menu items
+ * @param sel_menu selected menu
+ * @param sel_item selected item
+ * @param display_saver status display saver
+ * @param location_on status location module power saver
+ */
 void display_show_menu(char *menu[], uint8_t menu_len, uint8_t sel_menu, uint8_t sel_item, bool display_saver, bool location_on)
 {
 	// char line[64];
@@ -299,11 +313,11 @@ void display_show_menu(char *menu[], uint8_t menu_len, uint8_t sel_menu, uint8_t
 		oled_write_line(2, 0, (char *)"(3) Prev");
 		uint8_t prev_item = sel_item == 0 ? 12 : sel_item - 1;
 		uint8_t next_item = sel_item == 12 ? 0 : sel_item + 1;
-		sprintf(line_str, "%s", regions_list[prev_item]);
+		sprintf(line_str, "%s", g_regions_list[prev_item]);
 		oled_write_line(2, 64, line_str);
-		sprintf(line_str, "==>  %s", regions_list[sel_item]);
+		sprintf(line_str, "==>  %s", g_regions_list[sel_item]);
 		oled_write_line(3, 64, line_str);
-		sprintf(line_str, "%s", regions_list[next_item]);
+		sprintf(line_str, "%s", g_regions_list[next_item]);
 		oled_write_line(4, 64, line_str);
 	}
 	// Handle LoRaWAN ADR selection

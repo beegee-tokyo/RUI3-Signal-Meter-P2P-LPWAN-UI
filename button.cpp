@@ -11,52 +11,91 @@
 #include "app.h"
 #include "udrv_dfu.h"
 
+/** Button press time value */
 volatile static time_t pressTime = 0;
 
+/** Number of clicks counter */
 volatile uint8_t pressCount = 0;
 
+/** Timestamp for first button press event */
+static time_t firstPressTime = 0;
+
+/** Flag if UI is active or not */
 bool g_settings_ui = false;
+/** Current selected menu */
 uint8_t sel_menu = 0;
+/** Flag if changes require a restart */
 bool restart_required = false;
+/** Buffer for original settings */
 custom_param_s g_last_settings;
+/** Buffer of DR changes */
 uint8_t ui_last_dr = 0;
+/** Highest possible DR, depends on LoRaWAN region */
 uint8_t ui_max_dr = 0;
+/** Lowest possible DR, depends on LoRaWAN region */
 uint8_t ui_min_dr = 0;
+/** Selected LoRaWAN region */
 uint8_t ui_last_band = 0;
+/** Selected ADR status */
 uint8_t ui_last_adr = 0;
+/** Buffer for TX power changes */
 uint8_t ui_last_tx = 0;
+/** Highest possible TX, depends on LoRaWAN region */
 uint8_t ui_max_tx = 0;
+/** Lowest possible TX, depends on LoRaWAN region */
 uint8_t ui_min_tx = 0;
+/** Buffer for P2P frequency selection */
 uint32_t ui_p2p_freq = 0;
+/** Buffer for P2P SF selection */
 uint8_t ui_p2p_sf = 0;
+/** Buffer for P2P BW selection */
 uint8_t ui_p2p_bw = 0;
+/** Buffer for P2P CR selection */
 uint8_t ui_p2p_cr = 0;
+/** Buffer for P2P TX power selection */
 uint8_t ui_p2p_tx = 0;
 
+/** Content of top level menu */
 char *top_menu[] = {"Back", "Info", "Device Settings", "Mode", "LoRa Setting"};
+/** Size of top level menu */
 uint8_t top_menu_len = 5;
 
+/** Content for menus with only "Back" */
 char *back_menu[] = {"Back"};
+/** Size fo "Back" only menus */
 uint8_t back_menu_len = 1;
 
+/** Content of device settings menu */
 char *settings_menu[] = {"Back", "Interval", "Location", "Display Saver"};
+/** Size of device settings menu */
 uint8_t settings_menu_len = 4;
 
+/** Content of test mode menu */
 char *mode_menu[] = {"Back", "LPW LinkCheck", "LPW Confirmed", "P2P", "Field Tester"};
+/** Size of test mode menu */
 uint8_t mode_menu_len = 5;
 
+/** Content of P2P settings menu */
 char *settings_p2p_menu[] = {"Back", "Freq", "SF", "BW", "CR", "TX"};
+/** Size of P2P settings menu */
 uint8_t settings_p2p_menu_len = 6;
 
+/** Content of LoRaWAN settings menu */
 char *settings_lpw_menu[] = {"Back", "ADR", "DR", "TX", "Region"};
+/** Size of LoRaWAN settings menu */
 uint8_t settings_lpw_menu_len = 5;
 
-// char *p_sf_menu[] = {"5", "6", "7", "8", "9", "10", "11", "12"};
-// uint8_t p_sf_menu_len = 8;
-
+/** Table with P2P bandwidths */
 char *p_bw_menu[] = {"500", "250", "125", "62.5", "41.67", "31.25", "20.83", "15.63", "10.4", "7.8"};
-uint8_t p_bw_menu_len = 10;
 
+/**
+ * @brief Initialize button handler
+ *     Register interrupt handler
+ *     Register with millis task manager
+ * 
+ * @return true 
+ * @return false 
+ */
 bool buttonInit(void)
 {
 	pinMode(BUTTON_INT_PIN, INPUT_PULLUP);
@@ -67,8 +106,10 @@ bool buttonInit(void)
 	return true;
 }
 
-static time_t firstPressTime = 0;
-
+/**
+ * @brief Button interrupt handler
+ * 
+ */
 void buttonIntHandle(void)
 {
 	pressTime = millis();
@@ -80,6 +121,11 @@ void buttonIntHandle(void)
 	MYLOG("BTN", "pressCount = %d", pressCount);
 }
 
+/**
+ * @brief Button Status handler
+ * 
+ * @return uint8_t button status, number of clicks or long press detection
+ */
 uint8_t getButtonStatus(void)
 {
 	uint8_t lowCount = 0;
@@ -195,6 +241,11 @@ uint8_t getButtonStatus(void)
 	return BUTTONSTATE_NONE;
 }
 
+/**
+ * @brief Check changes done in UI
+ *     Reboot device if requested changes require it
+ * 
+ */
 void save_n_reboot(void)
 {
 	// Test mode changed, force a reboot
@@ -309,6 +360,14 @@ void save_n_reboot(void)
 	}
 }
 
+/**
+ * @brief Handle button events
+ *     Switch UI display depending on number clicks
+ *     Enable/Disable UI display depending on number of clicks
+ *     Force Reboot or Bootloader mode, depending on number of clicks
+ *     Switch display on/off with long press event
+ * 
+ */
 void handle_button(void)
 {
 	uint8_t selected_item = 0;

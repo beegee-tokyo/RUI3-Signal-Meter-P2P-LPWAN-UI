@@ -114,7 +114,7 @@ void display_show_menu(char *menu[], uint8_t menu_len, uint8_t sel_menu, uint8_t
 void oled_saver(void *);
 extern custom_param_s g_last_settings;
 extern char line_str[];
-extern char *regions_list[];
+extern char *g_regions_list[];
 extern char *p_bw_menu[];
 extern bool has_oled;
 
