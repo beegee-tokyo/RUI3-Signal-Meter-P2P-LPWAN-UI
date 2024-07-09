@@ -190,5 +190,8 @@ extern uint8_t max_sat;
 extern uint8_t max_sat_unchanged;
 extern float g_last_lat;
 extern float g_last_long;
+extern float g_last_accuracy;
+extern uint32_t g_last_altitude;
+extern uint8_t g_last_satellites;
 
 #endif // _APP_H_

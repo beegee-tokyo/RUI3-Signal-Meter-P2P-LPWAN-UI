@@ -42,6 +42,12 @@ uint8_t satellites = 0;
 float g_last_lat = 0.0;
 /** Last longitude for global use */
 float g_last_long = 0.0;
+/** Last accuracy for global use */
+float g_last_accuracy = 0.0;
+/** Last altitude for global use */
+uint32_t g_last_altitude = 0;
+/** Last number of satellites */
+uint8_t g_last_satellites = 0;
 
 /** Counter for GNSS readings */
 uint16_t check_gnss_counter = 0;
@@ -84,7 +90,10 @@ bool init_gnss(bool active)
 			my_gnss.enableGNSS(true, SFE_UBLOX_GNSS_ID_BEIDOU);
 			my_gnss.enableGNSS(true, SFE_UBLOX_GNSS_ID_IMES);
 			my_gnss.enableGNSS(true, SFE_UBLOX_GNSS_ID_QZSS);
+
 			my_gnss.setMeasurementRate(500);
+
+			my_gnss.saveConfiguration(); // Save the current settings to flash and BBR
 		}
 		else
 		{
@@ -92,10 +101,19 @@ bool init_gnss(bool active)
 			delay(250);
 		}
 
-		my_gnss.saveConfiguration(); // Save the current settings to flash and BBR
-
-		// Power down module
-		digitalWrite(WB_IO2, LOW);
+		// Keep GNSS active if forced in setup ==> Leads to faster battery drainage!
+		if (g_custom_parameters.test_mode == MODE_FIELDTESTER)
+		{
+			if (!g_custom_parameters.location_on)
+			{
+				digitalWrite(WB_IO2, LOW);
+			}
+		}
+		else
+		{
+			// Power down module
+			digitalWrite(WB_IO2, LOW);
+		}
 	}
 	else
 	{
@@ -108,8 +126,6 @@ bool init_gnss(bool active)
 
 		my_gnss.setI2COutput(COM_TYPE_UBX); // Set the I2C port to output UBX only (turn off NMEA noise)
 
-		my_gnss.setMeasurementRate(500);
-
 		my_gnss.enableGNSS(true, SFE_UBLOX_GNSS_ID_GPS);
 		my_gnss.enableGNSS(true, SFE_UBLOX_GNSS_ID_GALILEO);
 		my_gnss.enableGNSS(true, SFE_UBLOX_GNSS_ID_GLONASS);
@@ -118,8 +134,9 @@ bool init_gnss(bool active)
 		my_gnss.enableGNSS(true, SFE_UBLOX_GNSS_ID_IMES);
 		my_gnss.enableGNSS(true, SFE_UBLOX_GNSS_ID_QZSS);
 
-		// my_gnss.setNavigationFrequency(5); // Produce two solutions per second
-		// my_gnss.setAutoPVT(true, false);   // Tell the GNSS to "send" each solution and the lib not to update stale data implicitly
+		my_gnss.setMeasurementRate(500);
+
+		my_gnss.saveConfiguration(); // Save the current settings to flash and BBR
 	}
 
 	return true;
@@ -150,6 +167,7 @@ bool poll_gnss(void)
 
 	if (my_gnss.getGnssFixOk())
 	{
+		digitalWrite(LED_BLUE, HIGH);
 		fix_type = my_gnss.getFixType(); // Get the fix type
 		if (fix_type == 0)
 			sprintf(fix_type_str, "No Fix");
@@ -165,16 +183,35 @@ bool poll_gnss(void)
 			sprintf(fix_type_str, "Time fix");
 
 		satellites = my_gnss.getSIV();
-		if (satellites == max_sat)
-		{
-			max_sat_unchanged++;
-		}
-		if (satellites > max_sat)
-		{
-			max_sat = satellites;
-		}
 
-		if ((fix_type >= 3) && (max_sat_unchanged == 4)) /** Fix type 3D and number of satellites not growing */
+		bool satisfied = false;
+
+		if (!g_custom_parameters.location_on)
+		{
+			// When in cold start, wait for max satellites
+			if (satellites == max_sat)
+			{
+				max_sat_unchanged++;
+			}
+			if (satellites > max_sat)
+			{
+				max_sat = satellites;
+			}
+			if ((fix_type >= 3) && (max_sat_unchanged >= 2)) /** Fix type 3D and number of satellites not growing */
+			{
+				satisfied = true;
+			}
+		}
+		else
+		{
+			// When in warm start, just check if # satellites is larger than 5
+			if (satellites >= 5)
+			{
+				satisfied = true;
+			}
+		}
+		if (satisfied)
+		// if ((fix_type >= 3) && (max_sat_unchanged >= 4)) /** Fix type 3D and number of satellites not growing */
 		// if ((fix_type >= 3) && (satellites >= 8)) /** Fix type 3D and at least 8 satellites */
 		// if (fix_type >= 3) /** Fix type 3D */
 		{
@@ -191,7 +228,6 @@ bool poll_gnss(void)
 		}
 	}
 
-	char disp_str[255];
 	if (last_read_ok)
 	{
 		if ((latitude == 0) && (longitude == 0))
@@ -200,10 +236,13 @@ bool poll_gnss(void)
 			return false;
 		}
 
-		g_solution_data.addGNSS_T(latitude, longitude, altitude/1000, accuracy, satellites);
+		g_solution_data.addGNSS_T(latitude, longitude, altitude / 1000, accuracy, satellites);
 
 		g_last_lat = latitude / 10000000.0;
 		g_last_long = longitude / 10000000.0;
+		g_last_accuracy = accuracy;
+		g_last_altitude = altitude / 1000;
+		g_last_satellites = satellites;
 
 		return true;
 	}
@@ -225,6 +264,9 @@ bool poll_gnss(void)
 
 		g_last_lat = latitude / 10000000.0;
 		g_last_long = longitude / 10000000.0;
+		g_last_accuracy = accuracy;
+		g_last_altitude = altitude / 1000;
+		g_last_satellites = satellites;
 
 		return true;
 #endif
@@ -244,27 +286,30 @@ bool poll_gnss(void)
  */
 void gnss_handler(void *)
 {
-	char disp_str[255];
 	digitalWrite(LED_GREEN, HIGH);
 	bool finished_poll = false;
 	if (poll_gnss())
 	{
-		// Power down the module
-		digitalWrite(WB_IO2, LOW);
+		// Keep GNSS active if forced in setup ==> Leads to faster battery drainage!
+		if (!g_custom_parameters.location_on)
+		{
+			// Power down the module
+			digitalWrite(WB_IO2, LOW);
+		}
 		gnss_active = false;
 		delay(100);
 		MYLOG("GNSS", "Got location");
 		api.system.timer.stop(RAK_TIMER_3);
-		if (has_oled)
+		if (has_oled && !g_settings_ui)
 		{
 			oled_clear();
 			oled_add_line((char *)"Location:");
-			sprintf(disp_str, "La %.4f Lo %.4f", latitude / 10000000.0, longitude / 10000000.0, altitude / 1000.0);
-			oled_add_line(disp_str);
-			sprintf(disp_str, "HDOP %.2f Sat: %d", accuracy/100.0, satellites);
-			oled_add_line(disp_str);
-			finished_poll = true;
+			sprintf(line_str, "La %.4f Lo %.4f", latitude / 10000000.0, longitude / 10000000.0, altitude / 1000.0);
+			oled_add_line(line_str);
+			sprintf(line_str, "HDOP %.2f Sat: %d", accuracy / 100.0, satellites);
+			oled_add_line(line_str);
 		}
+		finished_poll = true;
 		// Always send confirmed packet to make sure a reply is received
 		if (!api.lorawan.send(g_solution_data.getSize(), g_solution_data.getBuffer(), 1, true, 7))
 		{
@@ -275,26 +320,37 @@ void gnss_handler(void *)
 	{
 		if (check_gnss_counter >= check_gnss_max_try)
 		{
-			// Power down the module
-			digitalWrite(WB_IO2, LOW);
+			// Keep GNSS active if forced in setup ==> Leads to faster battery drainage!
+			if (!g_custom_parameters.location_on)
+			{
+				// Power down the module
+				digitalWrite(WB_IO2, LOW);
+			}
 			delay(100);
 			gnss_active = false;
 			MYLOG("GNSS", "Location timeout");
 			api.system.timer.stop(RAK_TIMER_3);
 			// If no location found, Field Tester does not send data
-			if (has_oled)
+			if (has_oled && !g_settings_ui)
 			{
-				sprintf(disp_str, "No valid location found");
-				oled_add_line(disp_str);
+				sprintf(line_str, "No valid location found");
+				oled_add_line(line_str);
 			}
 			finished_poll = true;
 		}
 	}
-	if (has_oled && !finished_poll)
+	if (has_oled && !finished_poll && !g_settings_ui)
 	{
 		oled_clear();
 		line_str[0] = 0x00;
-		oled_add_line((char *)"Acquistion ongoing");
+		if (g_custom_parameters.location_on)
+		{
+			oled_add_line((char *)"Warm start acquistion");
+		}
+		else
+		{
+			oled_add_line((char *)"Acquistion ongoing");
+		}
 		if (satellites == 0)
 		{
 			for (int idx = 0; idx < check_gnss_counter; idx++)

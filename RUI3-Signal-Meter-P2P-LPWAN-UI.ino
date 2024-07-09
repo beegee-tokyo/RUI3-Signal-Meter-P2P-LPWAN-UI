@@ -67,32 +67,56 @@ void send_packet(void *data)
 
 		if (!gnss_active)
 		{
-			if (has_oled & !g_settings_ui)
+			if (has_oled && !g_settings_ui)
 			{
 				oled_clear();
 				oled_write_header((char *)"RAK Field Tester");
 				oled_add_line((char *)"Start location acquisition");
 			}
 
-			MYLOG("APP", "Activate GNSS");
-			digitalWrite(WB_IO2, HIGH);
-			// Set flag for GNSS active to avoid retrigger */
-			gnss_active = true;
-			// Startup GNSS module
-			init_gnss(true);
-			g_solution_data.reset();
-			check_gnss_counter = 0;
-			// Max location aquisition time is half of send frequency
-			check_gnss_max_try = g_custom_parameters.send_interval / 2 / 2500;
-			// Reset satellites check values
-			max_sat = 0;
-			max_sat_unchanged = 0;
-			// Start the timer
-			api.system.timer.start(RAK_TIMER_3, 2500, NULL);
+			if (!g_custom_parameters.location_on)
+			{
+				MYLOG("APP", "Activate GNSS");
+				digitalWrite(WB_IO2, HIGH);
+			}
+
+			// Check if we already have a sufficient location fix
+			if (poll_gnss())
+			{
+				if (has_oled && !g_settings_ui)
+				{
+					oled_clear();
+					oled_add_line((char *)"Location:");
+					sprintf(line_str, "La %.4f Lo %.4f", g_last_lat / 10000000.0, g_last_long / 10000000.0);
+					oled_add_line(line_str);
+					sprintf(line_str, "HDOP %.2f Sat: %d", g_last_accuracy / 100.0, g_last_satellites);
+					oled_add_line(line_str);
+				}
+				// Always send confirmed packet to make sure a reply is received
+				if (!api.lorawan.send(g_solution_data.getSize(), g_solution_data.getBuffer(), 1, true, 7))
+				{
+					MYLOG("APP", "LoRaWAN send returned error");
+				}
+			}
+			else
+			{
+				// Start checking for valid location
+				// Set flag for GNSS active to avoid retrigger */
+				gnss_active = true;
+				g_solution_data.reset();
+				check_gnss_counter = 0;
+				// Max location aquisition time is half of send frequency
+				check_gnss_max_try = g_custom_parameters.send_interval / 2 / 2500;
+				// Reset satellites check values
+				max_sat = 0;
+				max_sat_unchanged = 0;
+				// Start the timer
+				api.system.timer.start(RAK_TIMER_3, 2500, NULL);
+			}
 		}
 		else
 		{
-			if (has_oled & !g_settings_ui)
+			if (has_oled && !g_settings_ui)
 			{
 				oled_clear();
 				oled_write_header((char *)"RAK Field Tester");
@@ -104,7 +128,7 @@ void send_packet(void *data)
 	}
 	else
 	{
-		if (has_oled & !g_settings_ui)
+		if (has_oled && !g_settings_ui)
 		{
 			oled_clear();
 			oled_write_header((char *)"RAK Signal Meter");
@@ -129,7 +153,7 @@ void send_packet(void *data)
 					api.lorawan.dr.set(new_dr);
 					delay(500);
 					MYLOG("UPLINK", "Datarate changed to %d", api.lorawan.dr.get());
-					if (has_oled & !g_settings_ui)
+					if (has_oled && !g_settings_ui)
 					{
 						oled_add_line((char *)"Packet too large!");
 						sprintf(line_str, "New DR%d", new_dr);
@@ -168,13 +192,14 @@ void send_packet(void *data)
  *               4 = Linkcheck result display (only LPW LinkCheck mode)
  *               5 = Join success (only LPW mode)
  *               6 = Field Tester downlink packet
+ *               7 = Field Tester no downlink packet
  */
 void handle_display(void *reason)
 {
 	digitalWrite(LED_BLUE, LOW);
 	digitalWrite(LED_GREEN, LOW);
 	/** Update header and battery value */
-	if (has_oled & !g_settings_ui)
+	if (has_oled && !g_settings_ui)
 	{
 		oled_clear();
 		sprintf(line_str, "RAK Signal Meter");
@@ -195,7 +220,7 @@ void handle_display(void *reason)
 		// RX event display
 		if (g_custom_parameters.test_mode == MODE_CFM)
 		{
-			if (has_oled & !g_settings_ui)
+			if (has_oled && !g_settings_ui)
 			{
 				sprintf(line_str, "LPW CFM mode");
 				oled_write_line(0, 0, line_str);
@@ -221,7 +246,7 @@ void handle_display(void *reason)
 		}
 		else
 		{
-			if (has_oled & !g_settings_ui)
+			if (has_oled && !g_settings_ui)
 			{
 				sprintf(line_str, "LoRa P2P mode");
 				oled_write_line(0, 0, line_str);
@@ -292,7 +317,7 @@ void handle_display(void *reason)
 		// MYLOG("APP", "TX_ERROR %d\n", disp_reason[0]);
 
 		// digitalWrite(LED_BLUE, HIGH);
-		if (has_oled & !g_settings_ui)
+		if (has_oled && !g_settings_ui)
 		{
 			sprintf(line_str, "LPW CFM mode");
 			oled_write_line(0, 0, line_str);
@@ -363,7 +388,7 @@ void handle_display(void *reason)
 		}
 		Serial.printf("%s\n", line_str);
 		Serial.printf("Lost %d packets\n", packet_lost);
-		if (has_oled & !g_settings_ui)
+		if (has_oled && !g_settings_ui)
 		{
 			oled_write_line(3, 0, line_str);
 			sprintf(line_str, "TX DR %d", api.lorawan.dr.get());
@@ -374,7 +399,7 @@ void handle_display(void *reason)
 	else if (disp_reason[0] == 3)
 	{
 		// MYLOG("APP", "JOIN_ERROR %d\n", disp_reason[0]);
-		if (has_oled & !g_settings_ui)
+		if (has_oled && !g_settings_ui)
 		{
 			switch (g_custom_parameters.test_mode)
 			{
@@ -400,7 +425,7 @@ void handle_display(void *reason)
 	else if (disp_reason[0] == 5)
 	{
 		// MYLOG("APP", "JOIN_SUCCESS %d\n", disp_reason[0]);
-		if (has_oled & !g_settings_ui)
+		if (has_oled && !g_settings_ui)
 		{
 			switch (g_custom_parameters.test_mode)
 			{
@@ -427,7 +452,7 @@ void handle_display(void *reason)
 	{
 		// MYLOG("APP", "LINK_CHECK %d\n", disp_reason[0]);
 		// LinkCheck result event display
-		if (has_oled & !g_settings_ui)
+		if (has_oled && !g_settings_ui)
 		{
 			sprintf(line_str, "LPW LinkCheck %s", link_check_state == 0 ? "OK" : "NOK");
 			oled_write_line(0, 0, line_str);
@@ -534,7 +559,7 @@ void handle_display(void *reason)
 		Serial.printf("+EVT:RSSI min %d max %d\n", min_rssi, max_rssi);
 		Serial.printf("+EVT:Distance min %d max %d\n", min_distance, max_distance);
 
-		if (has_oled & !g_settings_ui)
+		if (has_oled && !g_settings_ui)
 		{
 			oled_clear();
 			oled_write_header((char *)"RAK FieldTester");
@@ -557,7 +582,23 @@ void handle_display(void *reason)
 			oled_write_line(2, 80, line_str);
 			sprintf(line_str, "%d", max_distance);
 			oled_write_line(3, 80, line_str);
-			sprintf(line_str,"L %.6f:%.6f",g_last_lat, g_last_long);
+			sprintf(line_str, "L %.6f:%.6f", g_last_lat, g_last_long);
+			oled_write_line(4, 0, line_str);
+			oled_display();
+		}
+	}
+	else if (display_reason == 7)
+	{
+		Serial.printf("+EVT:FieldTester no downlink\n");
+
+		if (has_oled && !g_settings_ui)
+		{
+			oled_clear();
+			oled_write_header((char *)"RAK FieldTester");
+
+			sprintf(line_str, "No Downlink received");
+			oled_write_line(0, 0, line_str);
+			sprintf(line_str, "L %.6f:%.6f", g_last_lat, g_last_long);
 			oled_write_line(4, 0, line_str);
 			oled_display();
 		}
@@ -653,9 +694,10 @@ void send_cb_lpw(int32_t status)
 
 		if (g_custom_parameters.test_mode == MODE_FIELDTESTER)
 		{
-			return;
+			display_reason = 7;
+			api.system.timer.start(RAK_TIMER_1, 250, &display_reason);
 		}
-		if (!use_link_check)
+		else if (!use_link_check)
 		{
 			packet_lost++;
 			display_reason = 2;
@@ -795,8 +837,6 @@ void setup(void)
 		MYLOG("APP", "Init GNSS as inactive");
 		init_gnss(false);
 	}
-	// Powerdown
-	digitalWrite(WB_IO2, LOW);
 
 	// Setup callbacks and timers depending on test mode
 	switch (g_custom_parameters.test_mode)
@@ -840,6 +880,13 @@ void setup(void)
 		}
 		set_field_tester();
 		break;
+	}
+
+	// Keep GNSS active if forced in setup ==> Leads to faster battery drainage!
+	if ((!g_custom_parameters.location_on) || (g_custom_parameters.test_mode != MODE_FIELDTESTER))
+	{
+		// Power down the module
+		digitalWrite(WB_IO2, LOW);
 	}
 	sprintf(line_str, "Test interval %lds", g_custom_parameters.send_interval / 1000);
 	oled_add_line(line_str);

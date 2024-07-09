@@ -81,7 +81,7 @@ This examples includes three custom AT commands:
 The device is built with a custom WisBlock Base Board:
 - [WisBlock Base Board RAK19026 (WisMesh Base Board) (coming soon)](https://store.rakwireless.com/products/wisblock-base-board-rak19026)
 
-To extend lifetime of the device, the battery can be disconnected by a simple slider switch. This helps to avoid discharging the battery while the device is not in use. But to charge the battery, the device has to be switched on!
+To extend lifetime of the device, the battery can be disconnected by a simple slider switch. This helps to avoid discharging the battery while the device is not in use. The device can be charged, even with the button in off position!
 
 The RAK19026 Base Board features as well a user configurable button, in this case it is used to control the UI, enable/disable the display and reset the device.
 
@@ -127,7 +127,7 @@ Overview of all settings levels and button functions:
 | ----- | ---------- | ---------- |------- |
 | Top level<br><img src="./assets/ui-top.png"> | | | Device might reset on leaving the settings if test mode has changed. |
 | | Device Info <br><img src="./assets/ui-top-info.png"> | | Current test settings |
-| | Device Settings <br><img src="./assets/ui-dev-setting-top.png"> | | General settings<br> Location and Display Saver are on/off toggle items |
+| | Device Settings <br><img src="./assets/ui-dev-setting-top.png"> | | General settings<br> Location and Display Saver are on/off toggle items<br><br>- Location on works only in FieldTester Mode and keeps the GNSS module powered up for faster location acquisition (faster battery drain)<br><br>- Display Saver on switches off the display after 1 minute. The display can be turned on with a single button click. |
 | | | Send Interval <br><img src="./assets/ui-dev-setting-interval.png"> | Change send interval in 15 second steps<br>(2) 15 seconds more<br>(3) 15 seconds less |
 | | Mode <br><img src="./assets/ui-mode-top.png"> | | Exclusive selection of one mode by number of clicks |
 | | LoRa Settings (LoRaWAN test modes) <br><img src="./assets/ui-lorawan-top.png"> | | UI depends on selected test mode.<br> In LinkCheck, Confirmed Packet and Field Tester Mode, it shows LoRaWAN specific settings. |
