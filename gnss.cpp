@@ -93,7 +93,15 @@ bool init_gnss(bool active)
 			my_gnss.enableGNSS(true, SFE_UBLOX_GNSS_ID_IMES);
 			my_gnss.enableGNSS(true, SFE_UBLOX_GNSS_ID_QZSS);
 
-			my_gnss.setMeasurementRate(500);
+			if (g_custom_parameters.location_on)
+			{
+				my_gnss.setNavigationFrequency(5); // Produce two solutions per second
+				my_gnss.setAutoPVT(true, false);   // Tell the GNSS to "send" each solution and the lib not to update stale data implicitly
+			}
+			else
+			{
+				my_gnss.setMeasurementRate(500);
+			}
 
 			my_gnss.saveConfiguration(); // Save the current settings to flash and BBR
 		}
@@ -136,8 +144,15 @@ bool init_gnss(bool active)
 		my_gnss.enableGNSS(true, SFE_UBLOX_GNSS_ID_IMES);
 		my_gnss.enableGNSS(true, SFE_UBLOX_GNSS_ID_QZSS);
 
-		my_gnss.setMeasurementRate(500);
-
+		if (g_custom_parameters.location_on)
+		{
+			my_gnss.setNavigationFrequency(5); // Produce two solutions per second
+			my_gnss.setAutoPVT(true, false);   // Tell the GNSS to "send" each solution and the lib not to update stale data implicitly
+		}
+		else
+		{
+			my_gnss.setMeasurementRate(500);
+		}
 		my_gnss.saveConfiguration(); // Save the current settings to flash and BBR
 	}
 
@@ -167,29 +182,64 @@ bool poll_gnss(void)
 	sprintf(fix_type_str, "No Fix");
 	byte fix_type;
 
-	if (my_gnss.getGnssFixOk())
+	if (g_custom_parameters.location_on)
 	{
-		digitalWrite(LED_BLUE, HIGH);
+		// GNSS is active all time, just check HDOP and number of satellites
+		latitude = my_gnss.getLatitude();
+		longitude = my_gnss.getLongitude();
+		altitude = my_gnss.getAltitude();
+		accuracy = my_gnss.getHorizontalDOP();
+		satellites = my_gnss.getSIV();
 		fix_type = my_gnss.getFixType(); // Get the fix type
-		if (fix_type == 0)
-			sprintf(fix_type_str, "No Fix");
-		else if (fix_type == 1)
-			sprintf(fix_type_str, "Dead reck");
+		if (fix_type == 1)
+			sprintf(fix_type_str, "Dead reckoning");
 		else if (fix_type == 2)
-			sprintf(fix_type_str, "Fix 2D");
+			sprintf(fix_type_str, "Fix type 2D");
 		else if (fix_type == 3)
-			sprintf(fix_type_str, "Fix 3D");
+			sprintf(fix_type_str, "Fix type 3D");
 		else if (fix_type == 4)
 			sprintf(fix_type_str, "GNSS fix");
 		else if (fix_type == 5)
 			sprintf(fix_type_str, "Time fix");
-
-		satellites = my_gnss.getSIV();
-
-		bool satisfied = false;
-
-		if (!g_custom_parameters.location_on)
+		else
 		{
+			sprintf(fix_type_str, "No Fix");
+			fix_type = 0;
+		}
+
+		MYLOG("GNSS", "Sat: %d Fix: %s", satellites, fix_type_str);
+		MYLOG("GNSS", "Lat: %.4f Lon: %.4f", latitude / 10000000.0, longitude / 10000000.0);
+		MYLOG("GNSS", "Alt: %.2f", altitude / 1000.0);
+		MYLOG("GNSS", "HDOP: %.2f ", accuracy / 100.0);
+
+		if ((accuracy < 300) && (satellites > 5))
+		{
+			last_read_ok = true;
+		}
+	}
+	else
+	{
+		if (my_gnss.getGnssFixOk())
+		{
+			digitalWrite(LED_BLUE, HIGH);
+			fix_type = my_gnss.getFixType(); // Get the fix type
+			if (fix_type == 0)
+				sprintf(fix_type_str, "No Fix");
+			else if (fix_type == 1)
+				sprintf(fix_type_str, "Dead reck");
+			else if (fix_type == 2)
+				sprintf(fix_type_str, "Fix 2D");
+			else if (fix_type == 3)
+				sprintf(fix_type_str, "Fix 3D");
+			else if (fix_type == 4)
+				sprintf(fix_type_str, "GNSS fix");
+			else if (fix_type == 5)
+				sprintf(fix_type_str, "Time fix");
+
+			satellites = my_gnss.getSIV();
+
+			bool satisfied = false;
+
 			// When in cold start, wait for max satellites
 			if (satellites == max_sat)
 			{
@@ -203,30 +253,23 @@ bool poll_gnss(void)
 			{
 				satisfied = true;
 			}
-		}
-		else
-		{
-			// When in warm start, just check if # satellites is larger than 5
-			if (satellites >= 5)
-			{
-				satisfied = true;
-			}
-		}
-		if (satisfied)
-		// if ((fix_type >= 3) && (max_sat_unchanged >= 4)) /** Fix type 3D and number of satellites not growing */
-		// if ((fix_type >= 3) && (satellites >= 8)) /** Fix type 3D and at least 8 satellites */
-		// if (fix_type >= 3) /** Fix type 3D */
-		{
-			last_read_ok = true;
-			latitude = my_gnss.getLatitude();
-			longitude = my_gnss.getLongitude();
-			altitude = my_gnss.getAltitude();
-			accuracy = my_gnss.getHorizontalDOP();
 
-			// MYLOG("GNSS", "Fixtype: %d %s", my_gnss.getFixType(), fix_type_str);
-			// MYLOG("GNSS", "Lat: %.4f Lon: %.4f", latitude / 10000000.0, longitude / 10000000.0);
-			// MYLOG("GNSS", "Alt: %.2f", altitude / 1000.0);
-			// MYLOG("GNSS", "Acy: %.2f ", accuracy / 100.0);
+			if (satisfied)
+			// if ((fix_type >= 3) && (max_sat_unchanged >= 4)) /** Fix type 3D and number of satellites not growing */
+			// if ((fix_type >= 3) && (satellites >= 8)) /** Fix type 3D and at least 8 satellites */
+			// if (fix_type >= 3) /** Fix type 3D */
+			{
+				last_read_ok = true;
+				latitude = my_gnss.getLatitude();
+				longitude = my_gnss.getLongitude();
+				altitude = my_gnss.getAltitude();
+				accuracy = my_gnss.getHorizontalDOP();
+
+				// MYLOG("GNSS", "Fixtype: %d %s", my_gnss.getFixType(), fix_type_str);
+				// MYLOG("GNSS", "Lat: %.4f Lon: %.4f", latitude / 10000000.0, longitude / 10000000.0);
+				// MYLOG("GNSS", "Alt: %.2f", altitude / 1000.0);
+				// MYLOG("GNSS", "Acy: %.2f ", accuracy / 100.0);
+			}
 		}
 	}
 
@@ -322,12 +365,13 @@ void gnss_handler(void *)
 	{
 		if (check_gnss_counter >= check_gnss_max_try)
 		{
-			// Keep GNSS active if forced in setup ==> Leads to faster battery drainage!
-			if (!g_custom_parameters.location_on)
-			{
-				// Power down the module
-				digitalWrite(WB_IO2, LOW);
-			}
+			// Keep GNSS active until we get a valid location!
+			// // Keep GNSS active if forced in setup ==> Leads to faster battery drainage!
+			// if (!g_custom_parameters.location_on)
+			// {
+			// 	// Power down the module
+			// 	digitalWrite(WB_IO2, LOW);
+			// }
 			delay(100);
 			gnss_active = false;
 			MYLOG("GNSS", "Location timeout");

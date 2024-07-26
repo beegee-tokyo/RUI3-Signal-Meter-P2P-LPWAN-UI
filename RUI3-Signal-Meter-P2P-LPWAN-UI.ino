@@ -882,12 +882,14 @@ void setup(void)
 		break;
 	}
 
-	// Keep GNSS active if forced in setup ==> Leads to faster battery drainage!
-	if ((!g_custom_parameters.location_on) || (g_custom_parameters.test_mode != MODE_FIELDTESTER))
-	{
-		// Power down the module
-		digitalWrite(WB_IO2, LOW);
-	}
+	// Keep GNSS active after reboot to enhance chances to get a valid location!
+	// // Keep GNSS active if forced in setup ==> Leads to faster battery drainage!
+	// if ((!g_custom_parameters.location_on) || (g_custom_parameters.test_mode != MODE_FIELDTESTER))
+	// {
+	// 	// Power down the module
+	// 	digitalWrite(WB_IO2, LOW);
+	// }
+
 	sprintf(line_str, "Test interval %lds", g_custom_parameters.send_interval / 1000);
 	oled_add_line(line_str);
 

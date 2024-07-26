@@ -263,6 +263,19 @@ void save_n_reboot(void)
 		api.system.reboot();
 	}
 
+	// If location setting has changed, need to initialize the GNSS module
+	if (g_last_settings.location_on != g_custom_parameters.location_on)
+	{
+		if (g_last_settings.test_mode == MODE_FIELDTESTER)
+		{
+			init_gnss(true);
+		}
+		else
+		{
+			init_gnss(false);
+		}
+	}
+
 	// Other setting changed, save them or apply them
 	if ((g_last_settings.send_interval != g_custom_parameters.send_interval) ||
 		(g_last_settings.display_saver != g_custom_parameters.display_saver) ||
