@@ -358,7 +358,12 @@ void gnss_handler(void *)
 		// Always send confirmed packet to make sure a reply is received
 		if (!api.lorawan.send(g_solution_data.getSize(), g_solution_data.getBuffer(), 1, true, 7))
 		{
+			tx_active = false;
 			MYLOG("APP", "LoRaWAN send returned error");
+		}
+		else
+		{
+			tx_active = true;
 		}
 	}
 	else
@@ -374,6 +379,8 @@ void gnss_handler(void *)
 			// }
 			delay(100);
 			gnss_active = false;
+			tx_active = false;
+
 			MYLOG("GNSS", "Location timeout");
 			api.system.timer.stop(RAK_TIMER_3);
 			// If no location found, Field Tester does not send data
@@ -383,6 +390,21 @@ void gnss_handler(void *)
 				oled_add_line(line_str);
 			}
 			finished_poll = true;
+			if (forced_tx)
+			{
+				forced_tx = false;
+				// If forced TX, send whether we have location or not 143050416, 1206306357
+				g_solution_data.addGNSS_T(143050416, 1206306357, 20000, 1, 6);
+				if (!api.lorawan.send(g_solution_data.getSize(), g_solution_data.getBuffer(), 1, true, 7))
+				{
+					tx_active = false;
+					MYLOG("APP", "LoRaWAN send returned error");
+				}
+				else
+				{
+					tx_active = true;
+				}
+			}
 		}
 	}
 	if (has_oled && !finished_poll && !g_settings_ui)

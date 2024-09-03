@@ -92,9 +92,9 @@ char *p_bw_menu[] = {"500", "250", "125", "62.5", "41.67", "31.25", "20.83", "15
  * @brief Initialize button handler
  *     Register interrupt handler
  *     Register with millis task manager
- * 
- * @return true 
- * @return false 
+ *
+ * @return true
+ * @return false
  */
 bool buttonInit(void)
 {
@@ -108,7 +108,7 @@ bool buttonInit(void)
 
 /**
  * @brief Button interrupt handler
- * 
+ *
  */
 void buttonIntHandle(void)
 {
@@ -123,7 +123,7 @@ void buttonIntHandle(void)
 
 /**
  * @brief Button Status handler
- * 
+ *
  * @return uint8_t button status, number of clicks or long press detection
  */
 uint8_t getButtonStatus(void)
@@ -244,7 +244,7 @@ uint8_t getButtonStatus(void)
 /**
  * @brief Check changes done in UI
  *     Reboot device if requested changes require it
- * 
+ *
  */
 void save_n_reboot(void)
 {
@@ -379,7 +379,7 @@ void save_n_reboot(void)
  *     Enable/Disable UI display depending on number of clicks
  *     Force Reboot or Bootloader mode, depending on number of clicks
  *     Switch display on/off with long press event
- * 
+ *
  */
 void handle_button(void)
 {
@@ -723,7 +723,7 @@ void handle_button(void)
 				break;
 			case S_P2P_TX:
 				sel_menu = S_P2P_TX;
-				 if (ui_p2p_tx == 5)
+				if (ui_p2p_tx == 5)
 				{
 					ui_p2p_tx = 22;
 				}
@@ -738,29 +738,60 @@ void handle_button(void)
 		}
 		else
 		{
-			MYLOG("BTN", "Force sending");
-			if (g_custom_parameters.test_mode == MODE_FIELDTESTER)
+			// MYLOG("BTN", "Force sending");
+			// if (g_custom_parameters.test_mode == MODE_FIELDTESTER)
+			// {
+			// 	if (!gnss_active)
+			// 	{
+			// 		// Stop interval sending
+			// 		if (g_custom_parameters.send_interval != 0)
+			// 		{
+			// 			api.system.timer.stop(RAK_TIMER_0);
+			// 			api.system.timer.start(RAK_TIMER_0, g_custom_parameters.send_interval, NULL);
+			// 		}
+			// 		send_packet(NULL);
+			// 	}
+			// }
+			// else
+			// {
+			// 	// Stop interval sending
+			// 	if (g_custom_parameters.send_interval != 0)
+			// 	{
+			// 		api.system.timer.stop(RAK_TIMER_0);
+			// 		api.system.timer.start(RAK_TIMER_0, g_custom_parameters.send_interval, NULL);
+			// 	}
+			// 	send_packet(NULL);
+			// }
+
+			// New forced sending part
+			// switch (g_custom_parameters.test_mode)
+			// {
+			// case (MODE_LINKCHECK):
+			// 	MYLOG("BTN", "Mode LinkCheck tx_active %s", tx_active ? "true" : "false");
+			// 	break;
+			// case (MODE_CFM):
+			// 	MYLOG("BTN", "Mode Confirmed tx_active %s", tx_active ? "true" : "false");
+			// 	break;
+			// case (MODE_P2P):
+			// 	MYLOG("BTN", "Mode P2P tx_active %s", tx_active ? "true" : "false");
+			// 	break;
+			// case (MODE_FIELDTESTER):
+			// 	MYLOG("BTN", "Mode FieldTester tx_active %s", tx_active ? "true" : "false");
+			// 	break;
+			// default:
+			// 	break;
+			// }
+
+			if (!tx_active)
 			{
-				if (!gnss_active)
-				{
-					// Stop interval sending
-					if (g_custom_parameters.send_interval != 0)
-					{
-						api.system.timer.stop(RAK_TIMER_0);
-						api.system.timer.start(RAK_TIMER_0, g_custom_parameters.send_interval, NULL);
-					}
-					send_packet(NULL);
-				}
-			}
-			else
-			{
-				// Stop interval sending
+				MYLOG("BTN", "Manual send triggered");
+				api.system.timer.stop(RAK_TIMER_0);
+				forced_tx = true;
+				send_packet(NULL);
 				if (g_custom_parameters.send_interval != 0)
 				{
-					api.system.timer.stop(RAK_TIMER_0);
 					api.system.timer.start(RAK_TIMER_0, g_custom_parameters.send_interval, NULL);
 				}
-				send_packet(NULL);
 			}
 		}
 		break;
@@ -999,6 +1030,38 @@ void handle_button(void)
 				break;
 			}
 			MYLOG("BTN", "1x Menu Level %d", sel_menu);
+		}
+		else
+		{
+			// switch (g_custom_parameters.test_mode)
+			// {
+			// case (MODE_LINKCHECK):
+			// 	MYLOG("BTN", "Mode LinkCheck tx_active %s", tx_active ? "true" : "false");
+			// 	break;
+			// case (MODE_CFM):
+			// 	MYLOG("BTN", "Mode Confirmed tx_active %s", tx_active ? "true" : "false");
+			// 	break;
+			// case (MODE_P2P):
+			// 	MYLOG("BTN", "Mode P2P tx_active %s", tx_active ? "true" : "false");
+			// 	break;
+			// case (MODE_FIELDTESTER):
+			// 	MYLOG("BTN", "Mode FieldTester tx_active %s", tx_active ? "true" : "false");
+			// 	break;
+			// default:
+			// 	break;
+			// }
+			// // if (((g_custom_parameters.test_mode == MODE_FIELDTESTER) || (g_custom_parameters.test_mode == MODE_P2P)) && !tx_active)
+			// if (!tx_active)
+			// {
+			// 	MYLOG("BTN", "Manual send triggered");
+			// 	api.system.timer.stop(RAK_TIMER_0);
+			// 	forced_tx = true;
+			// 	send_packet(NULL);
+			// 	if (g_custom_parameters.send_interval != 0)
+			// 	{
+			// 		api.system.timer.start(RAK_TIMER_0, g_custom_parameters.send_interval, NULL);
+			// 	}
+			// }
 		}
 		break;
 	}

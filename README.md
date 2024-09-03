@@ -516,11 +516,13 @@ void send_packet(void *data)
 	{
 		// Linkcheck is enabled, send an unconfirmed packet
 		api.lorawan.send(4, payload, 2, false);
+		tx_active = true;
 	}
 	else
 	{
 		// Linkcheck is disabled, send a confirmed packet
 		api.lorawan.send(4, payload, 2, true, 8);
+		tx_active = true;
 	}
 }
 ```

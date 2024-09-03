@@ -96,6 +96,8 @@ void get_min_max_dr(uint16_t region, uint8_t *min_dr, uint8_t *max_dr);
 extern uint32_t g_send_repeat_time;
 extern bool lorawan_mode;
 extern bool use_link_check;
+extern volatile bool tx_active;
+extern volatile bool forced_tx;
 
 // LoRaWAN stuff
 #include "wisblock_cayenne.h"

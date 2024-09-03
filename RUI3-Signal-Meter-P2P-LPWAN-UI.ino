@@ -29,6 +29,11 @@ volatile uint8_t last_dr = 0;
 /** TX fail reason (only LPW mode)*/
 volatile int32_t tx_fail_status;
 
+/** TX active flag (used for manual sending in Field Tester Mode and P2P mode) */
+volatile bool tx_active = false;
+/** Flag if TX is manually triggered */
+volatile bool forced_tx = false;
+
 /** LoRa mode */
 bool lorawan_mode = true;
 /** Flag if confirmed packets or LinkCheck should be used */
@@ -60,6 +65,8 @@ bool gnss_active = false;
  */
 void send_packet(void *data)
 {
+	tx_active = true;
+
 	if (g_custom_parameters.test_mode == MODE_FIELDTESTER)
 	{
 		// Clear payload
@@ -96,6 +103,7 @@ void send_packet(void *data)
 				if (!api.lorawan.send(g_solution_data.getSize(), g_solution_data.getBuffer(), 1, true, 7))
 				{
 					MYLOG("APP", "LoRaWAN send returned error");
+					tx_active = false;
 				}
 			}
 			else
@@ -132,7 +140,7 @@ void send_packet(void *data)
 		{
 			oled_clear();
 			oled_write_header((char *)"RAK Signal Meter");
-			oled_add_line((char *)"Start sending");
+			forced_tx = false;
 		}
 		if (api.lorawan.nwm.get())
 		{
@@ -140,6 +148,7 @@ void send_packet(void *data)
 			{
 				digitalWrite(LED_BLUE, HIGH);
 				MYLOG("APP", "Send packet");
+				oled_add_line((char *)"Start sending");
 
 				// Check DR
 				uint8_t new_dr = get_min_dr(api.lorawan.band.get(), g_custom_parameters.custom_packet_len);
@@ -164,11 +173,13 @@ void send_packet(void *data)
 				// Always send confirmed packet to make sure a reply is received
 				if (!api.lorawan.send(g_custom_parameters.custom_packet_len, g_custom_parameters.custom_packet, 2, true, 7))
 				{
+					tx_active = false;
 					MYLOG("APP", "LoRaWAN send returned error");
 				}
 			}
 			else
 			{
+				tx_active = false;
 				MYLOG("APP", "Not joined, don't send packet");
 			}
 		}
@@ -176,9 +187,11 @@ void send_packet(void *data)
 		{
 			digitalWrite(LED_GREEN, HIGH);
 			MYLOG("APP", "Send P2P packet");
+			oled_add_line((char *)"Start sending");
 
 			// Always send with CAD
 			api.lora.psend(g_custom_parameters.custom_packet_len, g_custom_parameters.custom_packet, true);
+			tx_active = true;
 		}
 	}
 }
@@ -193,6 +206,7 @@ void send_packet(void *data)
  *               5 = Join success (only LPW mode)
  *               6 = Field Tester downlink packet
  *               7 = Field Tester no downlink packet
+ *               8 = P2P manual TX finished
  */
 void handle_display(void *reason)
 {
@@ -231,7 +245,7 @@ void handle_display(void *reason)
 				sprintf(line_str, "RX DR %d", last_dr);
 				oled_write_line(2, 0, line_str);
 				sprintf(line_str, "TX DR %d", api.lorawan.dr.get());
-				oled_write_line(2, 0, line_str);
+				oled_write_line(2, 64, line_str);
 				sprintf(line_str, "RSSI %d", last_rssi);
 				oled_write_line(3, 0, line_str);
 				sprintf(line_str, "SNR  %d", last_snr);
@@ -603,6 +617,21 @@ void handle_display(void *reason)
 			oled_display();
 		}
 	}
+	else if (display_reason == 8)
+	{
+		Serial.printf("+EVT:P2P TX finished\n");
+		tx_active = false;
+
+		if (has_oled && !g_settings_ui)
+		{
+			oled_clear();
+			oled_write_header((char *)"RAK Signal Meter");
+
+			sprintf(line_str, "P2P TX finished");
+			oled_write_line(0, 0, line_str);
+			oled_display();
+		}
+	}
 
 	// digitalWrite(LED_GREEN, LOW);
 }
@@ -624,6 +653,20 @@ void join_cb_lpw(int32_t status)
 		display_reason = 5;
 		api.system.timer.start(RAK_TIMER_1, 250, &display_reason);
 	}
+	tx_active = false;
+}
+
+/**
+ * @brief Send callback for LoRa P2P mode
+ *
+ * @param data structure with RX packet information
+ */
+void send_cb_p2p(void)
+{
+	tx_active = false;
+
+	display_reason = 8;
+	api.system.timer.start(RAK_TIMER_1, 250, &display_reason);
 }
 
 /**
@@ -636,6 +679,7 @@ void recv_cb_p2p(rui_lora_p2p_recv_t data)
 	last_rssi = data.Rssi;
 	last_snr = data.Snr;
 	packet_num++;
+	tx_active = false;
 
 	display_reason = 1;
 	api.system.timer.start(RAK_TIMER_1, 250, &display_reason);
@@ -653,11 +697,20 @@ void recv_cb_lpw(SERVICE_LORA_RECEIVE_T *data)
 	last_dr = data->RxDatarate;
 
 	packet_num++;
+	tx_active = false;
 
 	if (data->Port == 0)
 	{
 		MYLOG("RX-CB", "fPort 0");
-		return;
+		if (g_custom_parameters.test_mode == MODE_CFM)
+		{
+			display_reason = 1;
+			api.system.timer.start(RAK_TIMER_1, 250, &display_reason);
+		}
+		else
+		{
+			return;
+		}
 	}
 	if (g_custom_parameters.test_mode == MODE_FIELDTESTER)
 	{
@@ -689,6 +742,7 @@ void send_cb_lpw(int32_t status)
 {
 	if (status != RAK_LORAMAC_STATUS_OK)
 	{
+		tx_active = false;
 		MYLOG("APP", "LMC status %d\n", RAK_LORAMAC_STATUS_OK);
 		tx_fail_status = status;
 
@@ -713,6 +767,7 @@ void send_cb_lpw(int32_t status)
  */
 void linkcheck_cb_lpw(SERVICE_LORA_LINKCHECK_T *data)
 {
+	tx_active = false;
 	if (g_custom_parameters.test_mode == MODE_FIELDTESTER)
 	{
 		return;
@@ -761,7 +816,7 @@ void setup(void)
 #ifdef _VARIANT_RAK4630_
 	if (NRF_POWER->USBREGSTATUS == 3)
 	{
-		delay(2000);
+		// delay(2000);
 	}
 	else
 	{
@@ -1024,6 +1079,7 @@ void set_p2p(void)
 	}
 	// Register callbacks
 	api.lora.registerPRecvCallback(recv_cb_p2p);
+	api.lora.registerPSendCallback(send_cb_p2p);
 	// Enable RX mode
 	api.lora.precv(65533);
 }
