@@ -15,12 +15,10 @@ This firmware requires at least RUI3 V4.1.1 or newer.
 - [Setup with built-in UI](#setup-with-built-in-ui)
 - [Setup with AT commands](#setup-with-at-commands)
   - [LoRa P2P](#lora-p2p-setup)
-  - [LoRaWAN confirmed packets](#lorawan-confirmed-packets-setup)
   - [LoRaWAN LinkCheck](#lorawan-linkcheck-setup)
   - [LoRaWAN Field Tester (requires backend server)](#lorawan-field-tester-setup)
 - [Usage](#usage)
   - [LoRa P2P](#lora-p2p)
-  - [LoRaWAN confirmed packets](#lorawan-confirmed-packets)
   - [LoRaWAN LinkCheck](#lorawan-linkcheck)
   - [LoRaWAN Field Tester (requires backend server)](#lorawan-field-tester)
 - [Enclosure](#enclosure)
@@ -37,7 +35,7 @@ The difference to the "other" _**Simple RUI3 based Signal Meter**_ is that this 
 <center><img src="./assets/device.jpg" width="50%" alt="Device">&nbsp&nbsp&nbsp&nbsp<img src="./assets/protection.png" height="50%" width="35%" alt="Device internal"></center>
 
 #### ⚠️ INFO ⚠️        
-One of the advantages of this simple tester is that it does not require any backend installations on the LoRaWAN server (like Helium, TTN and Chirpstack) if used in LinkCheck and Confirmed Packet mode, but should work with any LoRaWAN server like AWS or Actility.     
+One of the advantages of this simple tester is that it does not require any backend installations on the LoRaWAN server (like Helium, TTN and Chirpstack) if used in LinkCheck Packet mode, but should work with any LoRaWAN server like AWS or Actility.     
 Only the Field Tester Mode requires a backend server.    
 
 ## LoRa P2P mode
@@ -59,9 +57,8 @@ It requires setup of the devices with its LoRaWAN credentials and register on a 
 - OTAA join mode
 - LoRaWAN region
 
-It uses either confirmed packet mode or LinkCheck to collect information about the connection to the gateway(s).    
-If used with confirmed packets, it will display the RSSI and SNR of the ACK packet received from the LoRaWAN server.    
-If used with LinkCheck, the LoRaWAN server will report the number of gateways and the demodulation margin (calculated on the LoRaWAN server). The demodulation margin can give you information about the received signal quality.    
+It uses LinkCheck to collect information about the connection to the gateway(s).    
+With LinkCheck, the LoRaWAN server will report the number of gateways and the demodulation margin (calculated on the LoRaWAN server). The demodulation margin can give you information about the received signal quality.    
 Extract from the _**LoRaWAN 1.0.3 Specification**_:
 <center><img src="./assets/lorawan-linkcheck.png" alt="LinkCheck"></center>
 
@@ -69,7 +66,7 @@ In addition, it supports the RAK10701 Field Tester protocol. The advantage of th
 
 This examples includes three custom AT commands:     
 - **`ATC+SENDINT`** to set the send interval time or heart beat time. The device will send a payload with this interval. The time is set in seconds, e.g. **`AT+SENDINT=600`** sets the send interval to 600 seconds or 10 minutes.    
-- **`ATC+MODE`** to set the test mode. 0 using LPWAN LinkCheck, 1 using LPWAN CFM, 2 using LoRa P2P, 3 using Field Tester protocol.
+- **`ATC+MODE`** to set the test mode. 0 using LPWAN LinkCheck, 1 using LoRa P2P, 2 using Field Tester protocol.
 - **`ATC+STATUS`** to get some status information from the device.    
 - **`ATC+PCKG`** to setup a custom payload that is used in the uplink packets.
 
@@ -179,46 +176,6 @@ To be able to receive packets from other devices, they have to be setup to exact
 
 ----
 
-## LoRaWAN Confirmed Packets Setup
-
-To use the device in LoRaWAN mode it has to be set into this mode with     
-```at
-AT+NWM=1
-```
-The device might reboot after this command, if it was not already in LoRaWAN mode.    
-Then the LoRaWAN parameters and credentials have to be setup. In this example, I am setting the device to AS923-3, OTAA join mode, confirmed packet mode, disable link check and then reset the device to perform a LoRaWAN JOIN sequence:
-
-```at
-AT+BAND=10
-AT+NJM=1
-AT+CFM=1
-AT+LINKCHECK=0
-AT+DEVEUI=AC1F09FFFE000000
-AT+APPEUI=AC1F09FFFE000000
-AT+APPKEY=AC1F09FFFE000000AC1F09FFFE000000
-ATC+MODE=1
-ATZ
-```
-
-#### ⚠️ TIP ⚠️ 
-If the credentials were set already (they are saved in the flash of the device), the switch to CFM testing can as well be done with
-```at
-ATC+MODE=1
-```
-The device might reboot after this command, if it was not already in LoRaWAN mode.    
-
-#### ⚠️ IMPORTANT ⚠️        
-The device has to be registered in a LoRaWAN server with these credentials and a gateway in range has to be connected to the LoRaWAN server. Otherwise the device cannot join and there are no tests possible!
-If the device cannot join the network, it will show an error on the display:
-
-<center><img src="./assets/lpw-join-failed.png" alt="LoRaWAN Join Failed"></center>
-
-In this case double check all settings on the device and LoRaWAN server and check if a gateway is in range and connected to the LoRaWAN server.
-
-[Back to top](#content)
-
-----
-
 ## LoRaWAN LinkCheck Setup
 
 To use the device in LoRaWAN mode it has to be set into this mode with     
@@ -319,29 +276,6 @@ If the setup of all devices is the same and a packet is received, the display wi
 - SNR
 
 <center><img src="./assets/lora-p2p-rx.png" alt="LoRa P2P"></center>
-
-[Back to top](#content)
-
-----
-
-## LoRaWAN confirmed packets
-
-After the device has joined the network, it will send confirmed packets to the LoRaWAN server. The LoRaWAN server will send a downlink packet with the ACK. The display will show
-- Packet number
-- DR of the received packet
-- RSSI of the received packet
-- SNR of the received packet
-
-<center><img src="./assets/lpw-ok-packet.png" alt="LoRaWAN ACK"></center>
-
-If the device is out of the range of gateways (after it had joined before), it will show an error message if the LoRaWAN server did not send an ACK for the packet:
-
-- Packet number
-- Error message
-- Error detail
-- Number of lost packets
-
-<center><img src="./assets/lpw-nok-packet.png" alt="LoRaWAN ACK"></center>
 
 [Back to top](#content)
 

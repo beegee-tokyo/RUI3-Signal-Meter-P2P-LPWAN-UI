@@ -115,7 +115,7 @@ int interval_send_handler(SERIAL_PORT port, char *cmd, stParam *param)
 bool init_test_mode_at(void)
 {
 	return api.system.atMode.add((char *)"MODE",
-								 (char *)"Set/Get the test mode. 0 = LPWAN LinkCheck, 1 = LPWAN CFM, 2 = LoRa P2P, 3 = Field Tester",
+								 (char *)"Set/Get the test mode. 0 = LPWAN LinkCheck, 1 = LoRa P2P, 2 = Field Tester",
 								 (char *)"MODE", test_mode_handler,
 								 RAK_ATCMD_PERM_WRITE | RAK_ATCMD_PERM_READ);
 }
@@ -153,7 +153,7 @@ int test_mode_handler(SERIAL_PORT port, char *cmd, stParam *param)
 
 		MYLOG("AT_CMD", "Requested mode %ld", new_mode);
 
-		if (new_mode > 3)
+		if (new_mode > 2)
 		{
 			return AT_PARAM_ERROR;
 		}
@@ -178,9 +178,6 @@ int test_mode_handler(SERIAL_PORT port, char *cmd, stParam *param)
 			{
 			case MODE_LINKCHECK:
 				set_linkcheck();
-				break;
-			case MODE_CFM:
-				set_cfm();
 				break;
 			case MODE_P2P:
 				set_p2p();
@@ -356,7 +353,7 @@ int status_handler(SERIAL_PORT port, char *cmd, stParam *param)
 						  key_eui[8], key_eui[9], key_eui[10], key_eui[11],
 						  key_eui[12], key_eui[13], key_eui[14], key_eui[15]);
 				api.lorawan.nwkskey.get(key_eui, 16);
-				AT_PRINTF("NwsKey=%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X",
+				AT_PRINTF("NwksKey=%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X",
 						  key_eui[0], key_eui[1], key_eui[2], key_eui[3],
 						  key_eui[4], key_eui[5], key_eui[6], key_eui[7],
 						  key_eui[8], key_eui[9], key_eui[10], key_eui[11],
@@ -433,7 +430,7 @@ bool get_at_setting(void)
 	}
 	g_custom_parameters.send_interval = temp_params.send_interval;
 
-	if (temp_params.test_mode > 3)
+	if (temp_params.test_mode > 2)
 	{
 		MYLOG("AT_CMD", "Invalid test mode found %d", temp_params.test_mode);
 		g_custom_parameters.test_mode = 0;

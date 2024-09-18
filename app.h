@@ -51,10 +51,10 @@
 #define MYLOG(...)
 #endif
 
-// Set firmware version
-#define SW_VERSION_0 1
-#define SW_VERSION_1 0
-#define SW_VERSION_2 1
+// Set firmware version (done in arduino.json when using VSC + Arduino extension)
+// #define SW_VERSION_0 1
+// #define SW_VERSION_1 0
+// #define SW_VERSION_2 1
 
 /** Custom flash parameters structure */
 struct custom_param_s
@@ -71,9 +71,8 @@ struct custom_param_s
 typedef enum test_mode_num
 {
 	MODE_LINKCHECK = 0,
-	MODE_CFM = 1,
-	MODE_P2P = 2,
-	MODE_FIELDTESTER = 3
+	MODE_P2P = 1,
+	MODE_FIELDTESTER = 2
 } test_mode_num_t;
 
 /** Custom flash parameters */
@@ -86,7 +85,6 @@ bool init_test_mode_at(void);
 bool init_custom_pckg_at(void);
 bool get_at_setting(void);
 bool save_at_setting(void);
-void set_cfm(void);
 void set_linkcheck(void);
 void set_p2p(void);
 void set_field_tester(void);
@@ -169,7 +167,6 @@ uint8_t getButtonStatus(void);
 void handle_button(void);
 void buttonIntHandle(void);
 extern MillisTaskManager mtmMain;
-void mtm_handler(void *);
 extern volatile uint8_t pressCount;
 extern volatile bool display_power;
 
@@ -190,10 +187,10 @@ extern uint16_t check_gnss_counter;
 extern uint16_t check_gnss_max_try;
 extern uint8_t max_sat;
 extern uint8_t max_sat_unchanged;
-extern float g_last_lat;
-extern float g_last_long;
-extern float g_last_accuracy;
-extern uint32_t g_last_altitude;
-extern uint8_t g_last_satellites;
+extern volatile float g_last_lat;
+extern volatile float g_last_long;
+extern volatile float g_last_accuracy;
+extern volatile uint32_t g_last_altitude;
+extern volatile uint8_t g_last_satellites;
 
 #endif // _APP_H_

@@ -71,9 +71,9 @@ char *settings_menu[] = {"Back", "Interval", "Location", "Display Saver"};
 uint8_t settings_menu_len = 4;
 
 /** Content of test mode menu */
-char *mode_menu[] = {"Back", "LPW LinkCheck", "LPW Confirmed", "P2P", "Field Tester"};
+char *mode_menu[] = {"Back", "LPW LinkCheck", "P2P", "Field Tester"};
 /** Size of test mode menu */
-uint8_t mode_menu_len = 5;
+uint8_t mode_menu_len = 4;
 
 /** Content of P2P settings menu */
 char *settings_p2p_menu[] = {"Back", "Freq", "SF", "BW", "CR", "TX"};
@@ -129,11 +129,8 @@ void buttonIntHandle(void)
 uint8_t getButtonStatus(void)
 {
 	uint8_t lowCount = 0;
-	if (((millis() - pressTime) > 4000) && (digitalRead(BUTTON_INT_PIN) == LOW) && (pressCount >= 1))
+	if (((millis() - pressTime) > 3000) && (digitalRead(BUTTON_INT_PIN) == LOW) && (pressCount >= 1))
 	{
-		// pressCount = 0;
-		// pressTime = 0;
-
 		return LONG_PRESS;
 	}
 
@@ -148,8 +145,6 @@ uint8_t getButtonStatus(void)
 		}
 		if (highCount > 198) // Have no option but to.
 		{
-			// pressCount = 0;
-			// pressTime = 0;
 			return SINGLE_CLICK;
 		}
 	}
@@ -165,8 +160,6 @@ uint8_t getButtonStatus(void)
 		}
 		if (highCount > 198) // Have no option but to.
 		{
-			// pressCount = 0;
-			// pressTime = 0;
 			return DOUBLE_CLICK;
 		}
 	}
@@ -182,8 +175,6 @@ uint8_t getButtonStatus(void)
 		}
 		if (highCount > 198) // Have no option but to.
 		{
-			// pressCount = 0;
-			// pressTime = 0;
 			return TRIPPLE_CLICK;
 		}
 	}
@@ -199,8 +190,6 @@ uint8_t getButtonStatus(void)
 		}
 		if (highCount > 198) // Have no option but to.
 		{
-			// pressCount = 0;
-			// pressTime = 0;
 			return QUAD_CLICK;
 		}
 	}
@@ -216,8 +205,6 @@ uint8_t getButtonStatus(void)
 		}
 		if (highCount > 198) // Have no option but to.
 		{
-			// pressCount = 0;
-			// pressTime = 0;
 			return FIVE_CLICK;
 		}
 	}
@@ -233,8 +220,6 @@ uint8_t getButtonStatus(void)
 		}
 		if (highCount > 198) // Have no option but to.
 		{
-			// pressCount = 0;
-			// pressTime = 0;
 			return SIX_CLICK;
 		}
 	}
@@ -257,8 +242,23 @@ void save_n_reboot(void)
 		g_custom_parameters.test_mode = g_last_settings.test_mode;
 		g_custom_parameters.display_saver = g_last_settings.display_saver;
 		g_custom_parameters.location_on = g_last_settings.location_on;
+		oled_add_line((char *)"Saving Settings");
+		oled_add_line((char *)"Do not power off");
+		oled_display();
 		save_at_setting();
-		delay(5000);
+		delay(3000);
+		if (g_custom_parameters.test_mode == MODE_P2P)
+		{
+			api.lora.precv(0);
+			api.lorawan.join(0, 0, 10, 50);
+			api.lora.nwm.set();
+		}
+		else
+		{
+			api.lora.precv(0);
+			api.lorawan.join(1, 1, 10, 50);
+			api.lorawan.nwm.set();
+		}
 		// settings changed, reboot
 		api.system.reboot();
 	}
@@ -281,10 +281,15 @@ void save_n_reboot(void)
 		(g_last_settings.display_saver != g_custom_parameters.display_saver) ||
 		(g_last_settings.location_on != g_custom_parameters.location_on))
 	{
+		oled_clear();
+		oled_add_line((char *)"Saving Settings");
+		oled_add_line((char *)"Do not power off");
+		oled_display();
 		g_custom_parameters.send_interval = g_last_settings.send_interval;
 		g_custom_parameters.display_saver = g_last_settings.display_saver;
 		g_custom_parameters.location_on = g_last_settings.location_on;
 		save_at_setting();
+		delay(3000);
 	}
 	if (api.lorawan.nwm.get())
 	{
@@ -341,9 +346,6 @@ void save_n_reboot(void)
 	case MODE_LINKCHECK:
 		oled_add_line((char *)"LinkCheck mode");
 		break;
-	case MODE_CFM:
-		oled_add_line((char *)"Confirmed Pckg mode");
-		break;
 	case MODE_P2P:
 		oled_add_line((char *)"P2P mode");
 		break;
@@ -353,14 +355,6 @@ void save_n_reboot(void)
 	}
 	sprintf(line_str, "Test interval %lds", g_custom_parameters.send_interval / 1000);
 	oled_add_line(line_str);
-
-	/** \todo implement location on/off */
-	if (g_last_settings.location_on)
-	{
-	}
-	else
-	{
-	}
 
 	if (g_custom_parameters.send_interval != 0)
 	{
@@ -456,11 +450,6 @@ void handle_button(void)
 				selected_item = ui_p2p_cr;
 				display_show_menu(back_menu, back_menu_len, sel_menu, selected_item, g_last_settings.display_saver, g_last_settings.location_on);
 				break;
-			case T_MODE_MENU:
-				g_last_settings.test_mode = MODE_FIELDTESTER;
-				selected_item = g_last_settings.test_mode + 2;
-				display_show_menu(mode_menu, mode_menu_len, sel_menu, selected_item, g_last_settings.display_saver, g_last_settings.location_on);
-				break;
 			}
 			MYLOG("BTN", "5x Menu Level %d", sel_menu);
 		}
@@ -497,7 +486,7 @@ void handle_button(void)
 				display_show_menu(settings_menu, settings_menu_len, sel_menu, 255, g_last_settings.display_saver, g_last_settings.location_on);
 				break;
 			case T_MODE_MENU:
-				g_last_settings.test_mode = MODE_P2P;
+				g_last_settings.test_mode = MODE_FIELDTESTER;
 				selected_item = g_last_settings.test_mode + 2;
 				display_show_menu(mode_menu, mode_menu_len, sel_menu, selected_item, g_last_settings.display_saver, g_last_settings.location_on);
 				break;
@@ -578,7 +567,7 @@ void handle_button(void)
 				display_show_menu(settings_menu, settings_menu_len, sel_menu, 255, g_last_settings.display_saver, g_last_settings.location_on);
 				break;
 			case T_MODE_MENU:
-				g_last_settings.test_mode = MODE_CFM;
+				g_last_settings.test_mode = MODE_P2P;
 				selected_item = g_last_settings.test_mode + 2;
 				display_show_menu(mode_menu, mode_menu_len, sel_menu, selected_item, g_last_settings.display_saver, g_last_settings.location_on);
 				break;
@@ -628,13 +617,13 @@ void handle_button(void)
 				sel_menu = S_SEND_INT;
 				if (g_last_settings.send_interval != 0)
 				{
-					if (g_last_settings.send_interval < 15000)
+					if (g_last_settings.send_interval < 10000)
 					{
 						g_last_settings.send_interval = 0;
 					}
 					else
 					{
-						g_last_settings.send_interval -= 15000;
+						g_last_settings.send_interval -= 10000;
 					}
 				}
 				display_show_menu(back_menu, back_menu_len, sel_menu, 255, g_last_settings.display_saver, g_last_settings.location_on);
@@ -738,52 +727,12 @@ void handle_button(void)
 		}
 		else
 		{
-			// MYLOG("BTN", "Force sending");
-			// if (g_custom_parameters.test_mode == MODE_FIELDTESTER)
-			// {
-			// 	if (!gnss_active)
-			// 	{
-			// 		// Stop interval sending
-			// 		if (g_custom_parameters.send_interval != 0)
-			// 		{
-			// 			api.system.timer.stop(RAK_TIMER_0);
-			// 			api.system.timer.start(RAK_TIMER_0, g_custom_parameters.send_interval, NULL);
-			// 		}
-			// 		send_packet(NULL);
-			// 	}
-			// }
-			// else
-			// {
-			// 	// Stop interval sending
-			// 	if (g_custom_parameters.send_interval != 0)
-			// 	{
-			// 		api.system.timer.stop(RAK_TIMER_0);
-			// 		api.system.timer.start(RAK_TIMER_0, g_custom_parameters.send_interval, NULL);
-			// 	}
-			// 	send_packet(NULL);
-			// }
-
-			// New forced sending part
-			// switch (g_custom_parameters.test_mode)
-			// {
-			// case (MODE_LINKCHECK):
-			// 	MYLOG("BTN", "Mode LinkCheck tx_active %s", tx_active ? "true" : "false");
-			// 	break;
-			// case (MODE_CFM):
-			// 	MYLOG("BTN", "Mode Confirmed tx_active %s", tx_active ? "true" : "false");
-			// 	break;
-			// case (MODE_P2P):
-			// 	MYLOG("BTN", "Mode P2P tx_active %s", tx_active ? "true" : "false");
-			// 	break;
-			// case (MODE_FIELDTESTER):
-			// 	MYLOG("BTN", "Mode FieldTester tx_active %s", tx_active ? "true" : "false");
-			// 	break;
-			// default:
-			// 	break;
-			// }
-
 			if (!tx_active)
 			{
+				if (!display_power)
+				{
+					oled_power(true);
+				}
 				MYLOG("BTN", "Manual send triggered");
 				api.system.timer.stop(RAK_TIMER_0);
 				forced_tx = true;
@@ -979,7 +928,7 @@ void handle_button(void)
 				break;
 			case S_SEND_INT:
 				sel_menu = S_SEND_INT;
-				g_last_settings.send_interval += 15000;
+				g_last_settings.send_interval += 10000;
 				display_show_menu(back_menu, back_menu_len, sel_menu, selected_item, g_last_settings.display_saver, g_last_settings.location_on);
 				break;
 			}
@@ -1033,35 +982,7 @@ void handle_button(void)
 		}
 		else
 		{
-			// switch (g_custom_parameters.test_mode)
-			// {
-			// case (MODE_LINKCHECK):
-			// 	MYLOG("BTN", "Mode LinkCheck tx_active %s", tx_active ? "true" : "false");
-			// 	break;
-			// case (MODE_CFM):
-			// 	MYLOG("BTN", "Mode Confirmed tx_active %s", tx_active ? "true" : "false");
-			// 	break;
-			// case (MODE_P2P):
-			// 	MYLOG("BTN", "Mode P2P tx_active %s", tx_active ? "true" : "false");
-			// 	break;
-			// case (MODE_FIELDTESTER):
-			// 	MYLOG("BTN", "Mode FieldTester tx_active %s", tx_active ? "true" : "false");
-			// 	break;
-			// default:
-			// 	break;
-			// }
-			// // if (((g_custom_parameters.test_mode == MODE_FIELDTESTER) || (g_custom_parameters.test_mode == MODE_P2P)) && !tx_active)
-			// if (!tx_active)
-			// {
-			// 	MYLOG("BTN", "Manual send triggered");
-			// 	api.system.timer.stop(RAK_TIMER_0);
-			// 	forced_tx = true;
-			// 	send_packet(NULL);
-			// 	if (g_custom_parameters.send_interval != 0)
-			// 	{
-			// 		api.system.timer.start(RAK_TIMER_0, g_custom_parameters.send_interval, NULL);
-			// 	}
-			// }
+
 		}
 		break;
 	}

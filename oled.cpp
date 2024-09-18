@@ -279,9 +279,6 @@ void display_show_menu(char *menu[], uint8_t menu_len, uint8_t sel_menu, uint8_t
 		case MODE_LINKCHECK:
 			oled_write_line(1, 0, (char *)"LinkCheck Mode");
 			break;
-		case MODE_CFM:
-			oled_write_line(1, 0, (char *)"Confirmed Pckg Mode");
-			break;
 		case MODE_P2P:
 			oled_write_line(1, 0, (char *)"P2P Mode");
 			break;
@@ -300,8 +297,8 @@ void display_show_menu(char *menu[], uint8_t menu_len, uint8_t sel_menu, uint8_t
 	else if (sel_menu == S_SEND_INT)
 	{
 		oled_write_line(0, 0, (char *)"(1) Back");
-		oled_write_line(1, 0, (char *)"(2) 15 seconds more");
-		oled_write_line(2, 0, (char *)"(3) 15 seconds less");
+		oled_write_line(1, 0, (char *)"(2) 10 seconds more");
+		oled_write_line(2, 0, (char *)"(3) 10 seconds less");
 		sprintf(line_str, "              ==>  %ld s", g_last_settings.send_interval / 1000);
 		oled_write_line(4, 0, line_str);
 	}
@@ -473,7 +470,7 @@ void display_show_menu(char *menu[], uint8_t menu_len, uint8_t sel_menu, uint8_t
 					sprintf(line_str, "(%d) %s", idx + 1, menu[idx]);
 				}
 			}
-			// oled_add_line(line);
+
 			if (idx > 4)
 			{
 				y_pos = 64;

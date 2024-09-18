@@ -143,13 +143,6 @@ void read_acc(void)
 	MYLOG("ACC", "X %.3f %.3f %d", acc_sensor.readFloatAccelX(), acc_sensor.readFloatAccelX() * 1000.0, acc_x);
 	MYLOG("ACC", "Y %.3f %.3f %d", acc_sensor.readFloatAccelY(), acc_sensor.readFloatAccelY() * 1000.0, acc_y);
 	MYLOG("ACC", "Z %.3f %.3f %d", acc_sensor.readFloatAccelZ(), acc_sensor.readFloatAccelZ() * 1000.0, acc_z);
-
-	// g_tracker_data.acc_x_1 = (int8_t)(acc_x >> 8);
-	// g_tracker_data.acc_x_2 = (int8_t)(acc_x);
-	// g_tracker_data.acc_y_1 = (int8_t)(acc_y >> 8);
-	// g_tracker_data.acc_y_2 = (int8_t)(acc_y);
-	// g_tracker_data.acc_z_1 = (int8_t)(acc_z >> 8);
-	// g_tracker_data.acc_z_2 = (int8_t)(acc_z);
 }
 
 /**

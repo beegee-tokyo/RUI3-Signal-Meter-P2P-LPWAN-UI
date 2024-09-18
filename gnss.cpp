@@ -39,15 +39,15 @@ float accuracy = 0;
 uint8_t satellites = 0;
 
 /** Last latitude for global use */
-float g_last_lat = 0.0;
+volatile float g_last_lat = 0.0;
 /** Last longitude for global use */
-float g_last_long = 0.0;
+volatile float g_last_long = 0.0;
 /** Last accuracy for global use */
-float g_last_accuracy = 0.0;
+volatile float g_last_accuracy = 0.0;
 /** Last altitude for global use */
-uint32_t g_last_altitude = 0;
+volatile uint32_t g_last_altitude = 0;
 /** Last number of satellites */
-uint8_t g_last_satellites = 0;
+volatile uint8_t g_last_satellites = 0;
 
 /** Counter for GNSS readings */
 uint16_t check_gnss_counter = 0;
@@ -314,6 +314,12 @@ bool poll_gnss(void)
 		g_last_satellites = satellites;
 
 		return true;
+#else
+		g_last_lat = 0;
+		g_last_long = 0;
+		g_last_accuracy = 1;
+		g_last_altitude = 0;
+		g_last_satellites = 0;
 #endif
 	}
 
@@ -349,9 +355,9 @@ void gnss_handler(void *)
 		{
 			oled_clear();
 			oled_add_line((char *)"Location:");
-			sprintf(line_str, "La %.4f Lo %.4f", latitude / 10000000.0, longitude / 10000000.0, altitude / 1000.0);
+			sprintf(line_str, "La %.4f Lo %.4f", g_last_lat, g_last_long, g_last_altitude);
 			oled_add_line(line_str);
-			sprintf(line_str, "HDOP %.2f Sat: %d", accuracy / 100.0, satellites);
+			sprintf(line_str, "HDOP %.2f Sat: %d", g_last_accuracy, g_last_satellites );
 			oled_add_line(line_str);
 		}
 		finished_poll = true;
@@ -371,12 +377,6 @@ void gnss_handler(void *)
 		if (check_gnss_counter >= check_gnss_max_try)
 		{
 			// Keep GNSS active until we get a valid location!
-			// // Keep GNSS active if forced in setup ==> Leads to faster battery drainage!
-			// if (!g_custom_parameters.location_on)
-			// {
-			// 	// Power down the module
-			// 	digitalWrite(WB_IO2, LOW);
-			// }
 			delay(100);
 			gnss_active = false;
 			tx_active = false;
@@ -394,7 +394,7 @@ void gnss_handler(void *)
 			{
 				forced_tx = false;
 				// If forced TX, send whether we have location or not 143050416, 1206306357
-				g_solution_data.addGNSS_T(143050416, 1206306357, 20000, 1, 6);
+				g_solution_data.addGNSS_T(0, 0, 0, 1, 0);
 				if (!api.lorawan.send(g_solution_data.getSize(), g_solution_data.getBuffer(), 1, true, 7))
 				{
 					tx_active = false;
