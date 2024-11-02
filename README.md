@@ -1,3 +1,8 @@
+# This project is closed and has been moved to RAK10706-Signal-Meter
+----
+----
+----
+
 # Simple RUI3 based Signal Meter with settings option
 | <img src="./assets/RAK-Whirls.png" alt="RAKWireless"> |     <img src="./assets/device.jpg" alt="Signal Meter" size=50% > | <img src="./assets/rakstar.jpg" alt="RAKstar" > |    
 | :-: | :-: | :-: |
